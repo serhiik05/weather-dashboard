@@ -39,7 +39,7 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
         cached_data = cache.get(cache_key)
 
         if cached_data is None:
-            queryset = self.queryset
+            queryset = self.queryset[:10]
 
             serializer = self.get_serializer(queryset, many=True)
             cached_data = serializer.data
