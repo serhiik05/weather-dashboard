@@ -1,23 +1,51 @@
-[project]
+[tool.poetry]
 name = "weather-dashboard"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "serhiik"}
-]
+authors = ["Serhij"]
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "django (>=5.1.7,<6.0.0)",
-    "djangorestframework (>=3.15.2,<4.0.0)",
-    "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "celery (>=5.4.0,<6.0.0)",
-    "redis (>=5.2.1,<6.0.0)",
-    "requests (>=2.32.3,<3.0.0)",
-    "dotenv (>=0.9.9,<0.10.0)"
-]
 
+[tool.poetry.dependencies]
+python = "^3.10"
+asgiref = "3.8.1"
+attrs = "24.3.0"
+coverage = "7.6.10"
+django = "5.1.4"
+django-debug-toolbar = "4.4.6"
+django-filter = "24.3"
+django-rest-framework = "0.1.0"
+djangorestframework = "3.15.2"
+djangorestframework-simplejwt = "5.3.1"
+drf-spectacular = "0.28.0"
+inflection = "0.5.1"
+jsonschema = "4.23.0"
+jsonschema-specifications = "2024.10.1"
+psycopg = "3.2.3"
+pyjwt = "2.10.1"
+python-dateutil = "2.9.0.post0"
+python-dotenv = "1.0.1"
+pyyaml = "6.0.2"
+referencing = "0.35.1"
+rpds-py = "0.22.3"
+six = "1.17.0"
+sqlparse = "0.5.3"
+typing-extensions = "4.12.2"
+uritemplate = "4.1.1"
+pytest = "^8.3.4"
+pytest-django = "^4.10.0"
+pytest-cov = "^6.0.0"
+django-redis = "^5.4.0"
+ruff = "^0.9.10"
+celery = "^5.4.0"
+django-celery-beat = "^2.7.0"
+requests = "^2.32.3"
+
+[tool.ruff]
+line-length = 91
+
+[tool.ruff.format]
+quote-style = "double"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

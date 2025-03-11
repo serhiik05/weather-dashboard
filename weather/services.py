@@ -3,7 +3,7 @@ import requests
 from weather.models import WeatherData
 
 API_KEY = os.getenv("WEATHER_API_KEY")
-CITIES = ["Kyiv", "London", "Paris", "New York", "Tokyo"]
+CITIES = ["Kyiv", "Berlin", "Madrid", "Warsaw", "Oslo", "Ottawa", "London", "Barcelona", "Cairo", "Athens"]
 BASE_URL = "https://api.weatherapi.com/v1/current.json"
 
 
