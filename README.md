@@ -39,3 +39,27 @@
 ```bash
 git clone https://github.com/serhiik05/weather-dashboard.git
 cd weather-dashboard
+```
+
+### 2.2 Install project dependencies:
+   ```bash
+   pip install poetry
+   poetry install
+   ```
+
+### 2.3 Apply migrations:
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+   
+### 2.4 Create a superuser for admin access:
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+### 2.5 Start the development server:
+   ```bash
+   python manage.py runserver
+   ```
+
