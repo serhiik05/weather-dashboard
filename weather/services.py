@@ -1,5 +1,6 @@
 import os
 import requests
+from django.core.cache import cache
 from weather.models import WeatherData
 
 API_KEY = os.getenv("WEATHER_API_KEY")
@@ -9,6 +10,7 @@ BASE_URL = "https://api.weatherapi.com/v1/current.json"
 
 def fetch_weather(city):
     """Fetch weather for one city."""
+
     params = {
         "key": API_KEY,
         "q": city
@@ -29,18 +31,28 @@ def fetch_weather(city):
     return None
 
 
-def fetch_weather_data():
-    """Fetch weather for all cities and save to database."""
-    if not API_KEY:
-        raise ValueError("Cannot found WEATHER_API_KEY!")
+def update_weather_data():
+    """Fetch weather for all cities, update the database, and clear the cache.
+    Returns a list of updated cities."""
+    updated_cities = []
 
     for city in CITIES:
         weather = fetch_weather(city)
         if weather:
-            WeatherData.objects.create(
+            WeatherData.objects.update_or_create(
                 city=weather["city"],
-                temperature=weather["temperature"],
-                humidity=weather["humidity"],
-                wind_speed=weather["wind_speed"],
-                description=weather["description"]
+                defaults={
+                    "temperature": weather["temperature"],
+                    "humidity": weather["humidity"],
+                    "wind_speed": weather["wind_speed"],
+                    "description": weather["description"],
+                    "pressure": weather["pressure"],
+                    "feels_like": weather["feels_like"],
+                }
             )
+            updated_cities.append(city.lower())
+
+    if updated_cities:
+        cache.delete_many([f"weather_{city}" for city in updated_cities])
+
+    return updated_cities
