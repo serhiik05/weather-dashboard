@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -44,10 +45,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "django_filters",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "weather",
     "debug_toolbar",
     "django_celery_beat",
     "drf_spectacular",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -59,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "accounts.middleware.BlacklistMiddleware",
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -81,6 +85,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+AUTH_USER_MODEL = "accounts.User"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -174,4 +179,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
+    "ROTATE_REFRESH_TOKENS": True,
 }
