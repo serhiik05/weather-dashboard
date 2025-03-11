@@ -1,9 +1,14 @@
 from django.core.cache import cache
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
+from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from django.db.models import Avg, Min, Max
+
+from weather.filters import WeatherFilter
 from weather.models import WeatherData
 from weather.serializers import WeatherSerializer
+from weather.swagger_params import weather_list_params
 from weather.tasks import update_weather
 
 
@@ -12,7 +17,18 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = WeatherData.objects.all().order_by("-timestamp")
     serializer_class = WeatherSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filterset_class = WeatherFilter
+    search_fields = ["city", "description"]
+    ordering_fields = ["timestamp", "temperature", "humidity", "wind_speed"]
+    ordering = ["-timestamp"]
 
+    @extend_schema(
+        parameters=weather_list_params,
+        summary="Get weather records with filtering",
+        description="Retrieve weather data with optional filters such as "
+                    "city, date range, temperature, humidity, and wind speed.",
+    )
     def list(self, request):
         """Get the latest 25 weather records (cached for 5 minutes)."""
 
@@ -28,6 +44,14 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(cached_data)
 
+    @extend_schema(
+        summary="Get weather for a specific city",
+        description="Retrieve weather data for a given "
+                    "city, returning the latest 7 records.",
+        parameters=[
+            weather_list_params[0]
+        ],
+    )
     def retrieve(self, request, pk=None):
         """Get weather data for a specific city (cached for 10 minutes)."""
 
