@@ -26,6 +26,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=1
+      - IN_DOCKER=True
 
 
   db:
@@ -42,6 +43,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app_network
 
   redis:
     image: redis:7.4.2-alpine
@@ -53,6 +56,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app_network
 
   celery:
     build:
@@ -67,6 +72,8 @@ services:
     environment:
       - REDIS_HOST=redis
       - CELERY_BROKER_URL=redis://redis:6379/0
+    networks:
+      - app_network
 
   celery-beat:
     build:
@@ -83,6 +90,8 @@ services:
     environment:
         - REDIS_HOST=redis
         - CELERY_BROKER_URL=redis://redis:6379/0
+    networks:
+      - app_network
 
 volumes:
   postgres_data:

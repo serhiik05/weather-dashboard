@@ -1,7 +1,10 @@
 from django.core.cache import cache
+from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
+from requests import Request
 from rest_framework import viewsets, filters
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Avg, Min, Max
 
@@ -15,7 +18,7 @@ from weather.tasks import update_weather
 class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint that allows retrieving weather data."""
 
-    queryset = WeatherData.objects.all().order_by("-timestamp")
+    queryset = WeatherData.objects.all()
     serializer_class = WeatherSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
     filterset_class = WeatherFilter
@@ -29,41 +32,34 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
         description="Retrieve weather data with optional filters such as "
                     "city, date range, temperature, humidity, and wind speed.",
     )
-    def list(self, request):
+    def list(self, request: Request) -> Response:
         """Get the latest 25 weather records (cached for 5 minutes)."""
 
         cache_key = "latest_weather"
         cached_data = cache.get(cache_key)
 
-        if not cached_data:
-            queryset = self.get_queryset()[:25]
+        if cached_data is None:
+            queryset = self.queryset
+
             serializer = self.get_serializer(queryset, many=True)
-            cache.set(cache_key, serializer.data, timeout=300)
-            update_weather.delay()
+            cached_data = serializer.data
+            cache.set(cache_key, cached_data, timeout=300)
+            update_weather()
             return Response(serializer.data)
 
         return Response(cached_data)
 
-    @extend_schema(
-        summary="Get weather for a specific city",
-        description="Retrieve weather data for a given "
-                    "city, returning the latest 7 records.",
-        parameters=[
-            weather_list_params[0]
-        ],
-    )
-    def retrieve(self, request, pk=None):
-        """Get weather data for a specific city (cached for 10 minutes)."""
-
-        cache_key = f"weather_{pk}"
+    @action(detail=False, methods=['get'], url_path='city/(?P<city>[^/.]+)')
+    def city(self, request: Request, city=None) -> Response:
+        cache_key = f"weather_{city.lower()}"
         cached_data = cache.get(cache_key)
 
-        if not cached_data:
-            weather_data = WeatherData.objects.filter(city__iexact=pk).order_by("-timestamp")[:7]
-            if not weather_data.exists():
+        if cached_data is None:
+            weather_data = WeatherData.objects.filter(city__iexact=city).order_by("-timestamp").first()
+            if not weather_data:
                 return Response({"error": "No data found"}, status=404)
 
-            serializer = self.get_serializer(weather_data, many=True)
+            serializer = self.get_serializer(weather_data)
             cache.set(cache_key, serializer.data, timeout=600)
             update_weather.delay()
 
@@ -71,35 +67,39 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(cached_data)
 
-    def get_latest_weather(self, request):
-        """Get the latest weather data for
-        all tracked cities (cached for 10 minutes)."""
-
+    @action(detail=False, methods=["get"], url_path="latest")
+    def get_latest_weather(self, request: Request) -> Response:
         cache_key = "latest_weather_all"
         cached_data = cache.get(cache_key)
 
-        if not cached_data:
+        if cached_data is None:
             cities = WeatherData.objects.values_list("city", flat=True).distinct()
-            latest_weather = [WeatherData.objects.filter(city=city).order_by("-timestamp").first() for city in cities]
-            serializer = self.get_serializer([w for w in latest_weather if w], many=True)
-            cache.set(cache_key, serializer.data, timeout=600)
-            update_weather.delay()
+            latest_weather = [
+                WeatherData.objects.filter(city=city).order_by("-timestamp").first()
+                for city in cities
+            ]
+            latest_weather = [w for w in latest_weather if w]
 
-            return Response(serializer.data)
+            if not latest_weather:
+                return Response({"error": "No data found"}, status=404)
+
+            serializer = self.get_serializer(latest_weather, many=True)
+            cached_data = serializer.data
+            cache.set(cache_key, cached_data, timeout=600)
+            update_weather.delay()
 
         return Response(cached_data)
 
-    def get_average_weather(self, request, pk=None):
-        """Get the average temperature, humidity, and wind speed for a city (cached for 10 minutes)."""
-
+    @action(detail=False, methods=["get"], url_path="average/(?P<city>[^/.]+)")
+    def get_average_weather(self, request: Request, city=None) -> Response:
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
 
-        cache_key = f"average_weather_{pk}_{start_date}_{end_date}"
+        cache_key = f"average_weather_{city}_{start_date}_{end_date}"
         cached_data = cache.get(cache_key)
 
-        if not cached_data:
-            weather_data = WeatherData.objects.filter(city__iexact=pk)
+        if cached_data is None:
+            weather_data = WeatherData.objects.filter(city__iexact=city)
 
             if start_date and end_date:
                 weather_data = weather_data.filter(timestamp__date__range=[start_date, end_date])
@@ -113,26 +113,22 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
                 avg_wind_speed=Avg("wind_speed"),
             )
 
-            result = {"city": pk, **avg_data}
-            cache.set(cache_key, result, timeout=600)
+            cached_data = {"city": city, **avg_data}
+            cache.set(cache_key, cached_data, timeout=600)
             update_weather.delay()
-
-            return Response(result)
 
         return Response(cached_data)
 
-    def get_weather_stats(self, request, pk=None):
-        """Get min/max temperature, humidity, and wind speed
-        for a city (cached for 20 minutes)."""
-
+    @action(detail=False, methods=["get"], url_path="stats/(?P<city>[^/.]+)")
+    def get_weather_stats(self, request: Request, city=None) -> Response:
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
 
-        cache_key = f"weather_stats_{pk}_{start_date}_{end_date}"
+        cache_key = f"weather_stats_{city}_{start_date}_{end_date}"
         cached_data = cache.get(cache_key)
 
-        if not cached_data:
-            weather_data = WeatherData.objects.filter(city__iexact=pk)
+        if cached_data is None:
+            weather_data = WeatherData.objects.filter(city__iexact=city)
 
             if start_date and end_date:
                 weather_data = weather_data.filter(timestamp__date__range=[start_date, end_date])
@@ -149,10 +145,12 @@ class WeatherViewSet(viewsets.ReadOnlyModelViewSet):
                 max_wind_speed=Max("wind_speed"),
             )
 
-            result = {"city": pk, **stats_data}
-            cache.set(cache_key, result, timeout=1200)
+            cached_data = {"city": city, **stats_data}
+            cache.set(cache_key, cached_data, timeout=1200)
             update_weather.delay()
 
-            return Response(result)
-
         return Response(cached_data)
+
+
+def weather_dashboard(request):
+    return render(request, "weather_dashboard.html")

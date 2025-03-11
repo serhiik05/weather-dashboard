@@ -3,7 +3,7 @@ from celery import shared_task
 from weather.services import update_weather_data
 
 
-@shared_task(priority="high_priority")
+@shared_task()
 def update_weather():
     """Celery task to update weather data and clear only relevant cache entries."""
 

@@ -28,7 +28,6 @@ def fetch_weather(city):
             "pressure": data["current"]["pressure_mb"],
             "feels_like": data["current"]["feelslike_c"],
         }
-    return None
 
 
 def update_weather_data():
@@ -52,7 +51,7 @@ def update_weather_data():
             )
             updated_cities.append(city.lower())
 
-    if updated_cities:
-        cache.delete_many([f"weather_{city}" for city in updated_cities])
+    cache.delete_many([f"weather_{city}" for city in updated_cities])
+    cache.delete("latest_weather")
 
     return updated_cities

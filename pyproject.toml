@@ -40,6 +40,7 @@ ruff = "^0.9.10"
 celery = "^5.4.0"
 django-celery-beat = "^2.7.0"
 requests = "^2.32.3"
+psycopg-binary = "^3.2.5"
 
 [tool.ruff]
 line-length = 91

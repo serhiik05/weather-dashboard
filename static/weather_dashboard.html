@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <script>
+        async function loadWeather() {
+            let response = await fetch('/api/weather/');
+            let data = await response.json();
+            document.getElementById("weather").innerHTML = data.map(w =>
+                `<tr>
+                    <td>${w.city}</td>
+                    <td>${w.temperature}°C</td>
+                    <td>${w.humidity}%</td>
+                    <td>${w.wind_speed} km/h</td>
+                </tr>`
+            ).join("");
+        }
+        window.onload = loadWeather;
+    </script>
+</head>
+<body>
+    <h1>Weather Dashboard</h1>
+    <table border="1">
+        <thead>
+            <tr><th>City</th><th>Temperature</th><th>Humidity</th><th>Wind Speed</th></tr>
+        </thead>
+        <tbody id="weather"></tbody>
+    </table>
+</body>
+</html>
